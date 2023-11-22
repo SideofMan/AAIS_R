@@ -1,6 +1,7 @@
 library(hypergeo)
 library(BayesVarSel)
 library(pracma)
+library(rje)
 
 X = as.matrix(unname(Hald[,1:4]))
 n=dim(X)[1]
@@ -28,3 +29,17 @@ LinearModelML_exact(testX,testY)
 # run through all possible combinations of covariates and the one with the biggest ML is the "best"
 data=matrix(Y,ncol=1)
 LinearModel_likelihood()
+
+#---------------just keeping track of MarLik vs exact--------------#
+my_df <- read.csv("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv")
+
+df <- my_df
+# df = data.frame(matrix(ncol = 4, nrow = 2^4-1)); colnames(df) <- c("algorithm_run","MarLik","Exact_MarLik","Ratio")
+# columns <- 1:(2^4-1)
+# df$algorithm_run<-columns
+# columns_in_run = powerSet(1:4)
+# 
+# df[15,2]=6.670089018839259923516e-19; df[15,3]=3.822703833994052497434e-18; df[15,4]=df[15,2]/df[15,3]
+
+write.csv(df, "C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv", row.names=FALSE)
+

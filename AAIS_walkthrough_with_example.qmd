@@ -52,14 +52,13 @@ AAIS Algorithm Walkthrough with Outerproduct example \hfill Josh Seidman
 
 This document provides an annotated walkthrough of Bin Liu's Adaptive Annealed Importance Sampling algorithm (2014), applied to a toy function to use as an example. The toy function is the 7D outer product function seen in Liu's 2014 paper on page 9. First, we can see the algorithm, annotated with references to the specific parts of the algorithm as seen in the 2014 paper.
 
-<!-- when change of variables, put the jacobian in the prior -->
+<!-- when performing a change of variables, include the Jacobian in the prior -->
 
 Note that in this algorithm, we utilize log-likelihoods and log student t-distribution pdfs to reduce numerical complexity. This chunk should take about 30-40 minutes to run.
 
 ```{r Algorithm with annotations, echo=TRUE, results='markup', collapse = TRUE}
 
 rm(list = ls())
-options(error=browser)
 
 #-----------alter some base functions-----------------------------#
 # we need to alter some base functions in R to make sure that the algorithm
@@ -219,12 +218,12 @@ if (Target_function=='outerproduct'){
   add_component_number=2
 }else if(Target_function == "LinearModelHald"){
   # specify the number of columns to test (between 1 to 4 for Hald)
-  columns=c(1,2,3,4)
+  columns=c(2,3,4)
   X = as.matrix(unname(Hald[,columns]))
   n=dim(X)[1]
   X=cbind(ones(n,1),X)
   n=dim(X)[1]; k=dim(X)[2]
-  Y = as.matrix(unname(Hald[,-(columns)]))
+  Y = as.matrix(unname(Hald[,5]))
   
   X2 = X[,-1]
   BigSigma22 <<- solve(t(X2)%*%(diag(n) - 1/n*ones(n,n))%*%X2)
