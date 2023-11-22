@@ -60,6 +60,7 @@ Note that in this algorithm, we utilize log-likelihoods and log student t-distri
 
 rm(list = ls())
 options(error=browser)
+
 #-----------alter some base functions-----------------------------#
 # we need to alter some base functions in R to make sure that the algorithm
 # works for all dimensions
@@ -86,7 +87,7 @@ drop <- function(S){
 # files.sources = files.sources[grep("Plot", files.sources, invert = T)]
 # sapply(files.sources, source)
 
-setwd("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/Seidman R code") # sourcing all scripts
+setwd("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R") # sourcing all scripts
 source("all_functions.R")
 
 #-------------set up/initialize empty lists------------#
@@ -101,7 +102,7 @@ ESS=c()
 
 #------Define the name of your Target Function here--------#
 
-Target_function='helix'
+Target_function='LinearModelHald'
 
 #-----Simulating Annealing Importance Sampling-------------#
 
@@ -217,8 +218,20 @@ if (Target_function=='outerproduct'){
   # please note that adding 2 components is faster but may lead to poor approximations by the algorithm in some cases
   add_component_number=2
 }else if(Target_function == "LinearModelHald"){
-  data=1
-  dim=7 # dimension of the target likelihood function
+  # specify the number of columns to test (between 1 to 4 for Hald)
+  columns=c(1,2,3,4)
+  X = as.matrix(unname(Hald[,columns]))
+  n=dim(X)[1]
+  X=cbind(ones(n,1),X)
+  n=dim(X)[1]; k=dim(X)[2]
+  Y = as.matrix(unname(Hald[,-(columns)]))
+  
+  X2 = X[,-1]
+  BigSigma22 <<- solve(t(X2)%*%(diag(n) - 1/n*ones(n,n))%*%X2)
+  linearX <<- X
+  
+  data=matrix(Y,ncol = 1)
+  dim=length(columns)+3 # dimension of the target likelihood function, this will change based on columns above (#columns + 3)
   N=2e4;X2=list();X2$N=2e4 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
   Proposal=list();Proposal$M=10; # Number of mixing components in the initial proposal
   df=5  # degree of freedom of student's t distributions involved in all proposals
@@ -233,7 +246,7 @@ if (Target_function=='outerproduct'){
   }
   
   gama=c(0.0001, 0.001, 0.01, seq(0.05,1,by=0.05)) # the annealing schedule
-  print('outer product toy function')
+  print('Linear Model with Hald dataset')
   
   Proposal0=Proposal
   ESS_Arr=c()
@@ -279,7 +292,7 @@ for (j in 1:length(gama)){
     X$logProposal=log(X$Proposal)
     X$logProposal0=X$logProposal
     
-    output = do.call(Target_function, args=list(X$Values,data)) 
+    output = do.call(Target_function, args=list(X$Values,data))
     X$logPrior=output[[1]]; X$logLike=output[[2]] # logs of prior and likelihood, p in the paper
     X$logTarget=X$logPrior+X$logLike # p in the paper
     X$logAnnealTarget=X$logTarget*gama[j]+X$logProposal0*(1-gama[j]) # log of eqn 7

@@ -425,11 +425,6 @@ log_t_pdf <- function(X,Mu,Sigma,df){
   n = dim(X)[1]; p = dim(X)[2]
   pdf=log(gamma((df+p)/2))-.5*logdet(Sigma)-(.5*p*log(pi*df)+log(gamma(df/2))+.5*(df+p)*log(1+sqdist(t(X),t(Mu),inv_posdef(Sigma))/df));
   
-  if(any(is.nan(pdf))){
-    print("There was an NaN inside log_t_pdf")
-    browser()
-  }
-  
   pdf=Re(pdf);
   return(pdf)
 }
@@ -565,7 +560,6 @@ t_mix_update_v2 <- function(X, Proposal, df){
   cl <- makeCluster(4)
   registerDoParallel(cl)
   clusterExport(cl, varlist = t_mix_update_v2_varlist, envir = environment())
-
   oper <- foreach(ii = 1:M) %dopar% {
     # result <- multiResultClass()
     result = list()
@@ -911,84 +905,95 @@ LinearModelML_exact <- function(X,Y){
 }
 
 LinearModelHald <- function(thetas, data){
-  loglike=log(Linearmodel_likelihood(thetas,data))
-  logprior=log(Linearmodel_prior(thetas))
+  # loglike=log(LinearModel_likelihood(thetas,data))
+  loglike=LinearModel_loglikelihood(thetas,data)
+  logprior=LinearModel_logprior(thetas)
   
   output=list(logprior,loglike)
   return(output)
 }
 
-LinearModel_likelihood <- function(thetas,data){
-  X = matrix(c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 1, 11, 
-               11, 7, 11, 3, 1, 2, 21, 1, 11, 10, 26, 29, 56, 31, 52, 55, 71, 
-               31, 54, 47, 40, 66, 68, 6, 15, 8, 8, 6, 9, 17, 22, 18, 4, 23, 
-               9, 8, 60, 52, 20, 47, 33, 22, 6, 44, 22, 26, 34, 12, 12),ncol=5)
-  # X2 = X[,-1]
-  BigSigma22 = matrix(c(0.0927104018856017, 0.0856862094001623, 0.0926373565871297, 
-                        0.084454955318979, 0.0856862094001621, 0.0875602572156389, 0.0878666396937198, 
-                        0.0855980995271992, 0.0926373565871298, 0.0878666396937201, 0.0952014097401136, 
-                        0.0863919188425777, 0.0844549553189787, 0.0855980995271992, 0.0863919188425775, 
-                        0.0840311911923554),
-                      nrow = 4)
-  n = 13; k = 5;
+LinearModel_loglikelihood <- function(thetas,data){
+
+  # linearX and BigSigma22 should be variables defined globally outside of the function
+  
+  n = nrow(linearX); k = ncol(linearX);
   
   Y = matrix(data,ncol=1)
   
-  # X = as.matrix(unname(Hald[,1:4]))
-  # n=dim(X)[1]
-  # X=cbind(ones(n,1),X)
-  # n=dim(X)[1]; k=dim(X)[2]
-  
-  # Beta=thetas[,1:5]
-  # sigmasq=matrix(thetas[,6])
-  # g=matrix(thetas[,7])
-  
-  Beta=thetas[,1:5]
-  eta=matrix(thetas[,6])
-  xi=matrix(thetas[,7])
+  Beta=thetas[,1:k]
+  eta=matrix(thetas[,k+1])
+  xi=matrix(thetas[,k+2])
   
   # transform the data
   sigmasq=exp(eta)
   g=exp(xi)-1+(n+1)/k
   
-  return(1/(2*pi*sigmasq)^(n/2)*exp(-1/(2*sigmasq)*norm(Y-X%*%Beta, type = "2")^2))
-}
-
-LinearModel_prior <- function(thetas){
-  X = matrix(c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 1, 11, 
-               11, 7, 11, 3, 1, 2, 21, 1, 11, 10, 26, 29, 56, 31, 52, 55, 71, 
-               31, 54, 47, 40, 66, 68, 6, 15, 8, 8, 6, 9, 17, 22, 18, 4, 23, 
-               9, 8, 60, 52, 20, 47, 33, 22, 6, 44, 22, 26, 34, 12, 12),ncol=5)
-  # X2 = X[,-1]
-  BigSigma22 = matrix(c(0.0927104018856017, 0.0856862094001623, 0.0926373565871297, 
-                        0.084454955318979, 0.0856862094001621, 0.0875602572156389, 0.0878666396937198, 
-                        0.0855980995271992, 0.0926373565871298, 0.0878666396937201, 0.0952014097401136, 
-                        0.0863919188425777, 0.0844549553189787, 0.0855980995271992, 0.0863919188425775, 
-                        0.0840311911923554),
-                      nrow = 4)
-  n = 13; k = 5;
-  # X = as.matrix(unname(Hald[,1:4]))
-  # n=dim(X)[1]
-  # X=cbind(ones(n,1),X)
-  # n=dim(X)[1]; k=dim(X)[2]
+  pdf=zeros(dim(Beta)[1],1)
+  # for (i in 1:dim(Beta)[1]){
+  #   pdf[i]=1/(2*pi*sigmasq[i,])^(n/2)*exp(-1/(2*sigmasq[i,])*norm(Y-linearX%*%t(Beta[i,]), type = "2")^2)
+  # }
+  # if(any(is.nan(pdf))){
+  #   print("loglikelihood")
+  #   browser()
+  # }
+  # 
+  # return(pdf)
   
-  # Beta=thetas[,1:5]
-  # sigmasq=matrix(thetas[,6])
-  # g=matrix(thetas[,7])
-  
-  Beta=thetas[,1:5]
-  eta=matrix(thetas[,6])
-  xi=matrix(thetas[,7])
-  
-  # transform the data
-  sigmasq=exp(eta)
-  g=exp(xi)-1+(n+1)/k
-  
-  if (g > (1+n)/k - 1){
-    indicatorg = 1
-  } else {
-    indicatorg = 0
+  # loglikelihood to avoid NaNs
+  for (i in 1:dim(Beta)[1]){
+    pdf[i]=-n/2*(log(2*pi)+eta[i,])-1/(2*sigmasq[i,])*norm(Y-linearX%*%t(Beta[i,]), type = "2")^2
+  }
+  if(any(is.nan(pdf))){
+    print("loglikelihood")
+    browser()
   }
   
-  return(1/sigmasq*dmvnorm(Beta2,sigma = g*sigmasq*BigSigma22)*(1+g)^(-3/2)*indicatorg*exp(xi))
+  return(pdf)
+}
+
+LinearModel_logprior <- function(thetas){
+  # the Jacobian of the transformation of variables has been included in this function (e^xi)
+  
+  # linearX and BigSigma22 should be variables defined globally outside of the function
+  
+  n = nrow(linearX); k = ncol(linearX);
+  
+  Beta=thetas[,1:k]
+  Beta2=thetas[,2:k]
+  eta=matrix(thetas[,k+1])
+  xi=matrix(thetas[,k+2])
+  
+  # transform the data
+  sigmasq=exp(eta)
+  g=exp(xi)-1+(n+1)/k
+  
+  indicatorg = g
+  indicatorg[g > (1+n)/k - 1] = 1
+  indicatorg[g <= (1+n)/k - 1] = 0
+  
+  pdf=zeros(dim(Beta)[1],1)
+  
+  # for (i in 1:dim(Beta)[1]){
+  #   pdf[i]=1/as.numeric(sigmasq[i,])*dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22)*(1+as.numeric(g[i,]))^(-3/2)*as.numeric(indicatorg[i,]*exp(xi[i,]))
+  # }
+  # 
+  # if(any(is.nan(pdf))){
+  #   print("logprior")
+  #   browser()
+  # }
+  # 
+  # return(pdf)
+  
+  # logprior to avoid NaNs
+  for (i in 1:dim(Beta)[1]){
+    pdf[i]=-as.numeric(eta[i,])+dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22, log = T)-3/2*log(1+as.numeric(g[i,]))+log(as.numeric(indicatorg[i,])) + xi[i,]
+  }
+  
+  if(any(is.nan(pdf))){
+    print("logprior")
+    browser()
+  }
+  
+  return(pdf)
 }
