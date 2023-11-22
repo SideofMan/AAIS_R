@@ -23,7 +23,6 @@ LinearModelML_exact <- function(X,Y){
   return(as.numeric(Re(output)))
 }
 
-# LinearModelML_exact(X,Y)
 LinearModelML_exact(testX,testY)
 
 # run through all possible combinations of covariates and the one with the biggest ML is the "best"
@@ -38,7 +37,13 @@ df <- my_df
 # columns <- 1:(2^4-1)
 # df$algorithm_run<-columns
 # columns_in_run = powerSet(1:4)
-# 
+
+#-------add a new data frame row here--------#
+# columns_in_run = powerSet(1:4)
+#---which columns of Hald did you run?---#
+# your_columns = c(1,2,3)
+# ROW = which(unlist(lapply(columns_in_run,function(e) identical(as.numeric(e),c(1,2,3)))))
+# df[ROW,2]=MarLik; df[ROW,3]=LinearModelML_exact(linearX,data); df[ROW,4]=df[ROW,3]/df[ROW,]
 # df[15,2]=6.670089018839259923516e-19; df[15,3]=3.822703833994052497434e-18; df[15,4]=df[15,2]/df[15,3]
 
 write.csv(df, "C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv", row.names=FALSE)
