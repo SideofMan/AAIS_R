@@ -15,19 +15,22 @@ library("abind")
 library("profvis")
 library("foreach")
 library("doParallel")
+library("abind")
 library("pracma")
-library("NPflow") # not necessary to include in final script
-
+library("ggplot2")
+library("plotly")
+tic()
 rm(list = ls())
+options(error=browser)
 
 #-----------alter some base functions-----------------------------#
 # we need to alter some base functions in R to make sure that the algorithm
 # works for all dimensions
-tic()
+
 `[` <- function(...) base::`[`(...,drop=FALSE)
 drop <- function(S){
-  if(all(dim(S)==c(1,1,1))){
-    return(matrix(S))
+  if(all(dim(S)==c(1,1,1))){  # ensures that the algorithm works if your target function is 1D
+    return(matrix(S)) 
   }else{
     return(base::drop(S))
   }
@@ -46,7 +49,7 @@ drop <- function(S){
 # files.sources = files.sources[grep("Plot", files.sources, invert = T)]
 # sapply(files.sources, source)
 
-setwd("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/Seidman R code") # sourcing all scripts
+setwd("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R") # sourcing all scripts
 source("all_functions.R")
 
 #-------------set up/initialize empty lists------------#
@@ -61,10 +64,7 @@ ESS=c()
 
 #------Define the name of your Target Function here--------#
 
-Target_function='outerproduct'
-# Target_function='my_gaussian_mixture_1d'
-# Target_function='my_gaussian_mixture'
-Target_function='helix'
+Target_function='LinearModelHald'
 
 #-----Simulating Annealing Importance Sampling-------------#
 
@@ -97,119 +97,8 @@ if (Target_function=='outerproduct'){
   
   # tracking_length corresponds to how long it will take to break the add component while loop
   # I'd suggest something like 10 (or 20 if you'd like it to run longer)
-  tracking_length=20
-  tracking_thr=0.001 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
-  
-  # determine the number of components you would like to add when adding components: 1 or 2
-  # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
-  add_component_number=2
-} else if(Target_function=='helix'){
-  data=1
-  dim=3 # dimension of the target likelihood function
-  N=2e4;X2=list();X2$N=2e3 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
-  Proposal=list();Proposal$M=10; # Number of mixing components in the initial proposal
-  df=5  # degree of freedom of student's t distributions involved in all proposals
-  # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
-  Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
-  Proposal$Mu=matrix(runif(Proposal$M*dim, min = -10, max = 10), nrow = Proposal$M, ncol = dim) # Initial mean of mixing components
-  Proposal$Sigma=array(0, dim = c(dim, dim, Proposal$M)) # Initial covariance of mixing components
-  Sigma_initial=1e3*diag(dim)
-  for (i in 1:Proposal$M){
-    Proposal$Sigma[,,i]=1e3*diag(dim);
-  }
-
-  gama=c(0.0001, 0.001, 0.01, seq(0.05,1,by=0.05)) # the annealing schedule
-  # gama=c(0.0001,0.5) # bad gama for PROFILING ONLY
-  print('Helix 3d toy function')
-
-  Proposal0=Proposal
-  ESS_Arr=c()
-
-  Cor_thr=0.8
-  ESS_thr=0.9
-  str0='-----Made by Bin Liu-----'
-  plot_id=F
-  axis_lmt=c(-100,100,-100,100) # FLAG
-  w_thr=1e-6
-  
-  # tracking_length corresponds to how long it will take to break the add component while loop
-  # I'd suggest something like 10 (or 20 if you'd like it to run longer)
-  tracking_length=20
-  tracking_thr=0.001 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
-  
-  # determine the number of components you would like to add when adding components: 1 or 2
-  # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
-  add_component_number=2
-} else if(Target_function=='my_gaussian_mixture_1d'){
-  data=1
-  dim=1 # dimension of the target likelihood function
-  N=4e3;X2=list();X2$N=4e3 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
-  Proposal=list();Proposal$M=1; # Number of mixing components in the initial proposal
-  df=5  # degree of freedom of student's t distributions involved in all proposals
-  # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
-  Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
-  Proposal$Mu=zeros(Proposal$M,dim) # Initial mean of mixing components
-  Proposal$Sigma=array(0, dim = c(dim, dim, Proposal$M)) # Initial covariance of mixing components
-
-  Sigma_initial=1e-1*diag(dim)
-  for (i in 1:Proposal$M){
-    Proposal$Sigma[,,i]=1e1*diag(dim);
-  }
-
-  gama=c(0.1, 0.5, seq(0.8,1,by=0.05)) # the annealing schedule
-  print('My gaussian 1d toy function')
-
-  Proposal0=Proposal
-  ESS_Arr=c()
-
-  Cor_thr=0.85
-  ESS_thr=0.9
-  str0='-----Made by Bin Liu-----'
-  plot_id=F
-  axis_lmt=c(-10,10,-10,10) # FLAG
-  w_thr=1e-3 # If the weights of a mixture component is smaller than this value, delete it
-  
-  # tracking_length corresponds to how long it will take to break the add component while loop
-  # I'd suggest something like 10 (or 20 if you'd like it to run longer)
-  tracking_length=20
-  tracking_thr=0.001 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
-  
-  # determine the number of components you would like to add when adding components: 1 or 2
-  # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
-  add_component_number=1
-}else if(Target_function=='my_gaussian_mixture'){
-  data=1
-  dim=2 # dimension of the target likelihood function
-  N=2e4;X2=list();X2$N=2e4 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
-  Proposal=list();Proposal$M=1; # Number of mixing components in the initial proposal
-  df=5  # degree of freedom of student's t distributions involved in all proposals
-  # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
-  Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
-  Proposal$Mu=zeros(Proposal$M,dim) # Initial mean of mixing components
-  Proposal$Sigma=array(0, dim = c(dim, dim, Proposal$M)) # Initial covariance of mixing components
-
-  Sigma_initial=1e0*diag(dim) # changed from 1e1 to 1e0 for cutoff
-  for (i in 1:Proposal$M){
-    Proposal$Sigma[,,i]=1e1*diag(dim);
-  }
-
-  gama=c(0.1, 0.5, seq(0.8,1,by=0.05)) # the annealing schedule
-  print('My Gaussian Mixture 2d toy function')
-
-  Proposal0=Proposal
-  ESS_Arr=c()
-
-  Cor_thr=0.85
-  ESS_thr=0.9
-  str0='-----Made by Bin Liu-----'
-  plot_id=F
-  axis_lmt=c(-10,10,-10,10) # FLAG
-  w_thr=1e-5 # If the weights of a mixture component is smaller than this value, delete it
-  
-  # tracking_length corresponds to how long it will take to break the add component while loop
-  # I'd suggest something like 10 (or 20 if you'd like it to run longer)
-  tracking_length=20
-  tracking_thr=0.001 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
+  tracking_length=10
+  tracking_thr=0.1 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
   
   # determine the number of components you would like to add when adding components: 1 or 2
   # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
@@ -251,6 +140,93 @@ if (Target_function=='outerproduct'){
   # determine the number of components you would like to add when adding components: 1 or 2
   # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
   add_component_number=1
+}else if(Target_function=='helix'){
+  data=1
+  dim=3 # dimension of the target likelihood function
+  N=2e4;X2=list();X2$N=2e3 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
+  Proposal=list();Proposal$M=10; # Number of mixing components in the initial proposal
+  df=5  # degree of freedom of student's t distributions involved in all proposals
+  # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
+  Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
+  # Proposal$Mu=matrix(runif(Proposal$M*dim, min = -10, max = 10), nrow = Proposal$M, ncol = dim) # Initial mean of mixing components
+  Proposal$Mu=cbind(matrix(runif(Proposal$M*2, min = -50, max = 50), nrow = Proposal$M, ncol = 2), matrix(runif(Proposal$M*1, min = 0, max = 40), nrow = Proposal$M, ncol = 1))
+  Proposal$Sigma=array(0, dim = c(dim, dim, Proposal$M)) # Initial covariance of mixing components
+  
+  Sigma_initial=1e3*diag(dim)
+  for (i in 1:Proposal$M){
+    Proposal$Sigma[,,i]=1e3*diag(dim);
+  }
+  
+  gama=c(0.0001, 0.001, 0.01, seq(0.05,1,by=0.05)) # the annealing schedule
+  gama=seq(0.1,1,by=0.1)
+  print('Helix 3d toy function')
+  
+  Proposal0=Proposal
+  ESS_Arr=c()
+  
+  Cor_thr=0.7
+  ESS_thr=0.9
+  str0='-----Made by Bin Liu-----'
+  plot_id=F
+  axis_lmt=c(-100,100,-100,100) # FLAG
+  w_thr=1e-4
+  
+  # tracking_length corresponds to how long it will take to break the add component while loop
+  # I'd suggest something like 10 (or 20 if you'd like it to run longer)
+  tracking_length=20 # change back to 20 and 0.001
+  tracking_thr=0.001 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
+  
+  # determine the number of components you would like to add when adding components: 1 or 2
+  # please note that adding 2 components is faster but may lead to poor approximations by the algorithm in some cases
+  add_component_number=2
+}else if(Target_function == "LinearModelHald"){
+  # specify the number of columns to test (between 1 to 4 for Hald)
+  columns=c(4)
+  X = as.matrix(unname(Hald[,columns]))
+  n=dim(X)[1]
+  X=cbind(ones(n,1),X)
+  n=dim(X)[1]; k=dim(X)[2]
+  Y = as.matrix(unname(Hald[,5]))
+  
+  X2 = X[,-1]
+  BigSigma22 <<- solve(t(X2)%*%(diag(n) - 1/n*ones(n,n))%*%X2)
+  linearX <<- X
+  
+  data=matrix(Y,ncol = 1)
+  dim=length(columns)+3 # dimension of the target likelihood function, this will change based on columns above (#columns + 3)
+  N=2e4;X2=list();X2$N=2e4 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
+  Proposal=list();Proposal$M=10; # Number of mixing components in the initial proposal
+  df=300  # degree of freedom of student's t distributions involved in all proposals
+  # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
+  Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
+  Proposal$Mu=matrix(runif(Proposal$M*dim, min = -10, max = 10), nrow = Proposal$M, ncol = dim) # Initial mean of mixing components
+  Proposal$Sigma=array(0, dim = c(dim, dim, Proposal$M)) # Initial covariance of mixing components
+  
+  Sigma_initial=1e2*diag(dim) # Initial covariance of added components
+  for (i in 1:Proposal$M){
+    Proposal$Sigma[,,i]=1e2*diag(dim); # Initial covariance of mixing components
+  }
+  
+  gama=c(0.0001, 0.001, 0.01, seq(0.05,1,by=0.05)) # the annealing schedule
+  gama=c(0.001, 0.01, 0.1, seq(0.5,1,by=.1)) # the annealing schedule
+  print('Linear Model with Hald dataset')
+  
+  Proposal0=Proposal
+  ESS_Arr=c()
+  
+  Cor_thr=0.8
+  ESS_thr=0.6
+  str0='-----Made by Bin Liu-----'
+  w_thr=1e-4
+  
+  # tracking_length corresponds to how long it will take to break the add component while loop
+  # I'd suggest something like 10 (or 20 if you'd like it to run longer)
+  tracking_length=10
+  tracking_thr=0.1 # something like 0.1 for faster runtimes, 0.001 for slower but more added components
+  
+  # determine the number of components you would like to add when adding components: 1 or 2
+  # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
+  add_component_number=1
 }
 
 for (j in 1:length(gama)){
@@ -265,6 +241,9 @@ for (j in 1:length(gama)){
     }else if (Target_function=='Rastrigin'){
       X$Values=matrix(runif(X$N*dim, min = -5.12, max = 5.12), nrow = X$N, ncol = dim) # initial random samples
     }else if (Target_function=='helix'){
+      # X$Values=matrix(runif(X$N*dim, min = -10, max = 10), nrow = X$N, ncol = dim) # initial random samples
+      X$Values=cbind(matrix(runif(X$N*2, min = -50, max = 50), nrow = X$N, ncol = 2), matrix(runif(X$N*1, min = 0, max = 40), nrow = X$N, ncol = 1)) # initial random samples # initial random samples
+    }else if (Target_function=='LinearModelHald'){
       X$Values=matrix(runif(X$N*dim, min = -10, max = 10), nrow = X$N, ncol = dim) # initial random samples
     }
     
@@ -276,7 +255,7 @@ for (j in 1:length(gama)){
     X$logProposal=log(X$Proposal)
     X$logProposal0=X$logProposal
     
-    output = do.call(Target_function, args=list(X$Values,data)) 
+    output = do.call(Target_function, args=list(X$Values,data))
     X$logPrior=output[[1]]; X$logLike=output[[2]] # logs of prior and likelihood, p in the paper
     X$logTarget=X$logPrior+X$logLike # p in the paper
     X$logAnnealTarget=X$logTarget*gama[j]+X$logProposal0*(1-gama[j]) # log of eqn 7
@@ -285,6 +264,7 @@ for (j in 1:length(gama)){
     logWeight_scaled=X$logWeight-max(X$logWeight)+10 # scaling the logs of the weights
     weight_temp=exp(logWeight_scaled)
     X$NormalizedWeight=weight_temp/sum(weight_temp) # eqn 9
+    
     Proposal=t_mix_update_v2(X,Proposal,df) # initial EM algorithm to adjust proposal model, eqns 20-23
     Proposal$W=Proposal$W/sum(Proposal$W)
     X=t_mix_sample(Proposal,X,df) # sample from updated proposal model
@@ -428,7 +408,10 @@ for (j in 1:length(gama)){
       X2$Values=matrix(0,X2$N,dim)
       output=ISEM_astro(X2,Proposal_temp,Proposal0,df,Target_function,gama,j,data,w_thr) # section 3.3, step 1b-c
       X2=output[[1]]; Proposal_temp=output[[2]]
-      
+      if(length(Proposal_temp$W)[1]<2){
+        print(Proposal_temp$W)
+        browser()
+      }
       ESS_temp=1/sum(X2$NormalizedWeight^2)/X2$N
       Sigma_temp=Proposal$Sigma
       Sigma_temp=abind(Sigma_temp,Proposal_temp$Sigma,along=3)

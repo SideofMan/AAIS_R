@@ -59,6 +59,7 @@ Note that in this algorithm, we utilize log-likelihoods and log student t-distri
 ```{r Algorithm with annotations, echo=TRUE, results='markup', collapse = TRUE}
 
 rm(list = ls())
+options(error=browser)
 
 #-----------alter some base functions-----------------------------#
 # we need to alter some base functions in R to make sure that the algorithm
@@ -218,7 +219,7 @@ if (Target_function=='outerproduct'){
   add_component_number=2
 }else if(Target_function == "LinearModelHald"){
   # specify the number of columns to test (between 1 to 4 for Hald)
-  columns=c(2,3,4)
+  columns=c(4)
   X = as.matrix(unname(Hald[,columns]))
   n=dim(X)[1]
   X=cbind(ones(n,1),X)
@@ -233,18 +234,19 @@ if (Target_function=='outerproduct'){
   dim=length(columns)+3 # dimension of the target likelihood function, this will change based on columns above (#columns + 3)
   N=2e4;X2=list();X2$N=2e4 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
   Proposal=list();Proposal$M=10; # Number of mixing components in the initial proposal
-  df=5  # degree of freedom of student's t distributions involved in all proposals
+  df=300  # degree of freedom of student's t distributions involved in all proposals
   # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
   Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
   Proposal$Mu=matrix(runif(Proposal$M*dim, min = -10, max = 10), nrow = Proposal$M, ncol = dim) # Initial mean of mixing components
   Proposal$Sigma=array(0, dim = c(dim, dim, Proposal$M)) # Initial covariance of mixing components
   
-  Sigma_initial=1e3*diag(dim) # Initial covariance of added components
+  Sigma_initial=1e2*diag(dim) # Initial covariance of added components
   for (i in 1:Proposal$M){
-    Proposal$Sigma[,,i]=1e3*diag(dim); # Initial covariance of mixing components
+    Proposal$Sigma[,,i]=1e2*diag(dim); # Initial covariance of mixing components
   }
   
   gama=c(0.0001, 0.001, 0.01, seq(0.05,1,by=0.05)) # the annealing schedule
+  gama=c(0.001, 0.01, 0.1, seq(0.5,1,by=.1)) # the annealing schedule
   print('Linear Model with Hald dataset')
   
   Proposal0=Proposal
@@ -253,7 +255,7 @@ if (Target_function=='outerproduct'){
   Cor_thr=0.8
   ESS_thr=0.6
   str0='-----Made by Bin Liu-----'
-  w_thr=1e-5
+  w_thr=1e-4
   
   # tracking_length corresponds to how long it will take to break the add component while loop
   # I'd suggest something like 10 (or 20 if you'd like it to run longer)
@@ -262,7 +264,7 @@ if (Target_function=='outerproduct'){
   
   # determine the number of components you would like to add when adding components: 1 or 2
   # please note that adding 2 components is faster but may lead to poor and approximations by the algorithm
-  add_component_number=2
+  add_component_number=1
 }
 
 for (j in 1:length(gama)){
@@ -444,7 +446,10 @@ for (j in 1:length(gama)){
       X2$Values=matrix(0,X2$N,dim)
       output=ISEM_astro(X2,Proposal_temp,Proposal0,df,Target_function,gama,j,data,w_thr) # section 3.3, step 1b-c
       X2=output[[1]]; Proposal_temp=output[[2]]
-  
+      if(length(Proposal_temp$W)[1]<2){
+        print(Proposal_temp$W)
+        browser()
+      }
       ESS_temp=1/sum(X2$NormalizedWeight^2)/X2$N
       Sigma_temp=Proposal$Sigma
       Sigma_temp=abind(Sigma_temp,Proposal_temp$Sigma,along=3)
@@ -645,6 +650,29 @@ Y$NormalizedWeight=weight_temp/sum(weight_temp) # eqn 9
 ESS_final=1/sum(Y$NormalizedWeight^2)/Y$N
 q=exp(Y$logWeight)
 (MarLik=mean(exp(Y$logWeight))) # marginal likelihood of this model
+
+```
+If you ran the test on the linear model with the Hald data set (from package BayesVarSel), the largest marginal likelihood estimation should come from the model with the prior of including variables x1 and x2 only.
+
+Below, we use the function Bvs from BayesVarSel to verify that the most likely model is indeed the one that includes x1 and x2.
+
+```{r linear model Hald verification, echo=TRUE, results='markup', collapse = TRUE}
+
+#read Hald data
+data(Hald)
+
+#run the main function: (in this small example we keep all models)
+hald.Bvs<- Bvs(formula="y~x1+x2+x3+x4", data=Hald, prior.betas = "Robust.G", n.keep=16)
+
+#print the result
+hald.Bvs
+
+#obtain a summary of the result
+summary(hald.Bvs)
+
+#plots for the result
+#image plot of the conditional probabilities
+plot(hald.Bvs, option="conditional")
 
 ```
 
