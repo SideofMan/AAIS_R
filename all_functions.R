@@ -987,7 +987,7 @@ LinearModel_logprior <- function(thetas){
   
   # logprior to avoid NaNs
   for (i in 1:dim(Beta)[1]){
-    pdf[i]=-as.numeric(eta[i,])+dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22, log = T)-3/2*log(1+as.numeric(g[i,]))+log(as.numeric(indicatorg[i,])) + xi[i,]
+    pdf[i]=-as.numeric(eta[i,])+dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22, log = T)-3/2*log(1+as.numeric(g[i,]))+log(as.numeric(indicatorg[i,])) + xi[i,] + as.numeric(eta[i,])
   }
   
   if(any(is.nan(pdf))){

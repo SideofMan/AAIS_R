@@ -199,7 +199,7 @@ for (c in columns_in_run){
     dim=length(columns)+3 # dimension of the target likelihood function, this will change based on columns above (#columns + 3)
     N=2e4;X2=list();X2$N=2e4 # N: particle size of importance sampling; X2$N: sample size for adding a new mixture component
     Proposal=list();Proposal$M=10; # Number of mixing components in the initial proposal
-    df=300  # degree of freedom of student's t distributions involved in all proposals
+    df=5  # degree of freedom of student's t distributions involved in all proposals
     # Proposal$W=rep(1/Proposal$M, Proposal$M) # Initial weight of each mixing component
     Proposal$W=matrix(1/Proposal$M,1,Proposal$M) # Initial weight of each mixing component
     Proposal$Mu=matrix(runif(Proposal$M*dim, min = -10, max = 10), nrow = Proposal$M, ncol = dim) # Initial mean of mixing components
@@ -551,7 +551,7 @@ for (c in columns_in_run){
   your_columns = c # the linear model run you did
   ROW = which(unlist(lapply(columns_in_run,function(e) identical(as.numeric(e),as.numeric(your_columns))))) # row in the df for your run
   
-  my_df <- read.csv("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML_df300.csv")
+  my_df <- read.csv("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv")
   df <- my_df
   
   df[ROW,2]=output$M
@@ -562,6 +562,6 @@ for (c in columns_in_run){
   
   print(df)
   
-  write.csv(df, "C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML_df300.csv", row.names=FALSE)
+  write.csv(df, "C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv", row.names=FALSE)
   toc()
 }
