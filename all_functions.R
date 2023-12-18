@@ -930,15 +930,6 @@ LinearModel_loglikelihood <- function(thetas,data){
   g=exp(xi)-1+(n+1)/k
   
   pdf=zeros(dim(Beta)[1],1)
-  # for (i in 1:dim(Beta)[1]){
-  #   pdf[i]=1/(2*pi*sigmasq[i,])^(n/2)*exp(-1/(2*sigmasq[i,])*norm(Y-linearX%*%t(Beta[i,]), type = "2")^2)
-  # }
-  # if(any(is.nan(pdf))){
-  #   print("loglikelihood")
-  #   browser()
-  # }
-  # 
-  # return(pdf)
   
   # loglikelihood to avoid NaNs
   for (i in 1:dim(Beta)[1]){
@@ -974,20 +965,9 @@ LinearModel_logprior <- function(thetas){
   
   pdf=zeros(dim(Beta)[1],1)
   
-  # for (i in 1:dim(Beta)[1]){
-  #   pdf[i]=1/as.numeric(sigmasq[i,])*dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22)*(1+as.numeric(g[i,]))^(-3/2)*as.numeric(indicatorg[i,]*exp(xi[i,]))
-  # }
-  # 
-  # if(any(is.nan(pdf))){
-  #   print("logprior")
-  #   browser()
-  # }
-  # 
-  # return(pdf)
-  
   # logprior to avoid NaNs
   for (i in 1:dim(Beta)[1]){
-    pdf[i]=-as.numeric(eta[i,])+dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22, log = T)-3/2*log(1+as.numeric(g[i,]))+log(as.numeric(indicatorg[i,])) + xi[i,] + as.numeric(eta[i,])
+    pdf[i]=-as.numeric(eta[i,])+dmvnorm(Beta2[i,],sigma = as.numeric(g[i,]*sigmasq[i,])*BigSigma22, log = T)+log(sqrt(1+n)/(2*sqrt(k)))-3/2*log(1+as.numeric(g[i,]))+log(as.numeric(indicatorg[i,])) + xi[i,] + as.numeric(eta[i,])
   }
   
   if(any(is.nan(pdf))){

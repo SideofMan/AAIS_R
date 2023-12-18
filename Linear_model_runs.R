@@ -551,7 +551,7 @@ for (c in columns_in_run){
   your_columns = c # the linear model run you did
   ROW = which(unlist(lapply(columns_in_run,function(e) identical(as.numeric(e),as.numeric(your_columns))))) # row in the df for your run
   
-  my_df <- read.csv("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv")
+  my_df <- read.csv("C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML_v2.csv")
   df <- my_df
   
   df[ROW,2]=output$M
@@ -562,6 +562,6 @@ for (c in columns_in_run){
   
   print(df)
   
-  write.csv(df, "C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML.csv", row.names=FALSE)
+  write.csv(df, "C:/Users/jdseidma/Dropbox/Research/SU23/AAIS/GitHub/AAIS_R/linear_model_ML_v2.csv", row.names=FALSE)
   toc()
 }
