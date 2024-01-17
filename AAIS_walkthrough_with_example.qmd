@@ -102,7 +102,7 @@ ESS=c()
 
 #------Define the name of your Target Function here--------#
 
-Target_function='LinearModelHald'
+Target_function='Rastrigin'
 
 #-----Simulating Annealing Importance Sampling-------------#
 
@@ -603,9 +603,9 @@ if(Target_function=='outerproduct'){
                 alpha = 1, colorscale = "Rainbow") %>%
     layout(title = 'Algorithm mixture output') %>%
     layout(scene = list(aspectmode = "manual", aspectratio = list(x=1,y=1,z=0.5),
-                        xaxis = list(range = c(-5.12,5.12)), 
-                        yaxis = list(range = c(-5.12,5.12)),
-                        zaxis = list(range = c(0,0.03))))%>%
+                        xaxis = list(titlefont = list(size = 25), tickfont = list(size = 15), range = c(-5.12,5.12)), 
+                        yaxis = list(titlefont = list(size = 25), tickfont = list(size = 15), range = c(-5.12,5.12)),
+                        zaxis = list(titlefont = list(size = 25), tickfont = list(size = 15), range = c(0,0.03))))%>%
     hide_colorbar()
 }else if(Target_function=='helix'){
   samps=as.data.frame(X$Values); colnames(samps) <- c("x","y","z")
